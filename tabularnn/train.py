@@ -9,7 +9,7 @@ import torch.optim as optim
 from sklearn.metrics import f1_score, accuracy_score, roc_auc_score, precision_score
 
 ##### train #####
-def train_model(model, dataloader, num_epochs=10, criterion=None, optimizer=None, lr=0.001):
+def train_model(model, dataloader, test_dataloader, num_epochs=10, criterion=None, optimizer=None, lr=0.001):
     if criterion is None: criterion = nn.CrossEntropyLoss()  # multiclass cross entropy loss
     if optimizer is None: optimizer = optim.Adam(model.parameters(), lr=lr)  # Adam optimizer
 
@@ -20,12 +20,22 @@ def train_model(model, dataloader, num_epochs=10, criterion=None, optimizer=None
     epoches_acc = []
     epoches_precision = []
 
+
+    test_losses = []
+    test_f1s = []
+    test_aucs = []
+    test_accs = []
+    test_precisions = []
+
+
     ##### Training loop #####
     for epoch in range(num_epochs):
         running_loss = 0.0
         all_preds = []
         all_labels = []
         all_probs = []
+
+
         for batch_X, batch_y in dataloader:
             
             optimizer.zero_grad() # clear gradients from last batch
@@ -72,6 +82,16 @@ def train_model(model, dataloader, num_epochs=10, criterion=None, optimizer=None
         epoches_precision.append(epoch_precision)
         epoches_auc.append(epoch_auc)
 
+
+        # get test performance
+        test_loss, test_f1, test_accuracy, test_precision, test_auroc = evaluate(model, test_dataloader, criterion)
+        test_losses.append(test_loss)
+        test_f1s.append(test_f1)
+        test_aucs.append(test_auroc)
+        test_accs.append(test_accuracy)
+        test_precisions.append(test_precision)
+
+    plot_metrics(epoches_loss, test_losses, epoches_f1, test_f1s, epoches_acc, test_accs, epoches_precision, test_precisions, epoches_auc, test_aucs)
     return model, epoches_loss, epoches_f1, epoches_acc, epoches_precision, epoches_auc
 
 
@@ -109,19 +129,20 @@ def evaluate(model, dataloader, criterion):
     else:  # if multi-class do one-v-rest
         auroc = roc_auc_score(all_labels, all_probs, multi_class='ovr')
 
-    print(f'Loss: {average_loss:0.4f}, f1: {f1:0.3f}, accuracy: {accuracy:0.4f}, percision: {precision:0.4f}, auroc: {auroc:0.4f}')
+    # print(f'Loss: {average_loss:0.4f}, f1: {f1:0.3f}, accuracy: {accuracy:0.4f}, percision: {precision:0.4f}, auroc: {auroc:0.4f}')
     return average_loss, f1, accuracy, precision, auroc
 
 
 ##### plots #####
-def plot_metrics(epoches_loss, epoches_f1, epoches_acc, epoches_precision, epoches_auc):
+def plot_metrics(epoches_loss, test_losses, epoches_f1, test_f1s, epoches_acc, test_accs, epoches_precision, test_precisions, epoches_auc, test_aucs):
     epochs = range(1, len(epoches_loss) + 1)
     
     plt.figure(figsize=(12, 10))
     
     # Loss
     plt.subplot(2, 2, 1)
-    plt.plot(epochs, epoches_loss, label='Loss', color='blue')
+    plt.plot(epochs, epoches_loss, label='Train Loss', color='blue')
+    plt.plot(epochs, test_losses, label='Test Loss', color='blue', linestyle='--')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Loss by Epoch')
@@ -129,23 +150,33 @@ def plot_metrics(epoches_loss, epoches_f1, epoches_acc, epoches_precision, epoch
     
     # F1 Score
     plt.subplot(2, 2, 2)
-    plt.plot(epochs, epoches_f1, label='F1 Score', color='green')
+    plt.plot(epochs, epoches_f1, label='Train F1 Score', color='green')
+    plt.plot(epochs, test_f1s, label='Test F1 Score', color='green', linestyle='--')
     plt.xlabel('Epoch')
     plt.ylabel('F1 Score')
     plt.title('F1 Score by Epoch')
     plt.legend()
     
     # Accuracy
+    # plt.subplot(2, 2, 3)
+    # plt.plot(epochs, epoches_acc, label='Accuracy', color='orange')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Accuracy')
+    # plt.title('Accuracy by Epoch')
+    # plt.legend()
+
     plt.subplot(2, 2, 3)
-    plt.plot(epochs, epoches_acc, label='Accuracy', color='orange')
+    plt.plot(epochs, epoches_auc, label='Train AUROC', color='orange')
+    plt.plot(epochs, test_aucs, label='Test AUROC', color='orange', linestyle='--')
     plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.title('Accuracy by Epoch')
+    plt.ylabel('AUROC')
+    plt.title('AUROC by Epoch')
     plt.legend()
     
     # Precision
     plt.subplot(2, 2, 4)
-    plt.plot(epochs, epoches_precision, label='Precision', color='red')
+    plt.plot(epochs, epoches_precision, label='Train Precision', color='red')
+    plt.plot(epochs, test_precisions, label='Test Precision', color='red', linestyle='--')
     plt.xlabel('Epoch')
     plt.ylabel('Precision')
     plt.title('Precision by Epoch')
