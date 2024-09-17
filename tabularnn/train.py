@@ -158,20 +158,21 @@ def plot_metrics(epoches_loss, test_losses, epoches_f1, test_f1s, epoches_acc, t
     plt.legend()
     
     # Accuracy
-    # plt.subplot(2, 2, 3)
-    # plt.plot(epochs, epoches_acc, label='Accuracy', color='orange')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Accuracy')
-    # plt.title('Accuracy by Epoch')
-    # plt.legend()
-
     plt.subplot(2, 2, 3)
-    plt.plot(epochs, epoches_auc, label='Train AUROC', color='orange')
-    plt.plot(epochs, test_aucs, label='Test AUROC', color='orange', linestyle='--')
+    plt.plot(epochs, epoches_acc, label='Accuracy', color='orange')
+    plt.plot(epochs, test_accs, label='Test Accuracy', color='orange', linestyle='--')
     plt.xlabel('Epoch')
-    plt.ylabel('AUROC')
-    plt.title('AUROC by Epoch')
+    plt.ylabel('Accuracy')
+    plt.title('Accuracy by Epoch')
     plt.legend()
+
+    # plt.subplot(2, 2, 3)
+    # plt.plot(epochs, epoches_auc, label='Train AUROC', color='orange')
+    # plt.plot(epochs, test_aucs, label='Test AUROC', color='orange', linestyle='--')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('AUROC')
+    # plt.title('AUROC by Epoch')
+    # plt.legend()
     
     # Precision
     plt.subplot(2, 2, 4)
