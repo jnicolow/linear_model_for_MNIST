@@ -92,7 +92,7 @@ def train_model(model, dataloader, test_dataloader, num_epochs=10, criterion=Non
         test_precisions.append(test_precision)
 
     plot_metrics(epoches_loss, test_losses, epoches_f1, test_f1s, epoches_acc, test_accs, epoches_precision, test_precisions, epoches_auc, test_aucs)
-    return model, epoches_loss, epoches_f1, epoches_acc, epoches_precision, epoches_auc
+    return model, test_loss, test_f1, test_accuracy, test_precision, test_auroc # return the last results on the test dataset
 
 
 
@@ -103,7 +103,7 @@ def evaluate(model, dataloader, criterion):
     all_labels = []
     all_probs = []  # To store predicted probabilities
     running_loss = 0.0
-
+    model.eval()
     with torch.no_grad():  # no gradient tracking for inference
         for batch_X, batch_y in dataloader:
             outputs = model(batch_X)

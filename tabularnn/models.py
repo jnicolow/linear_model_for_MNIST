@@ -44,3 +44,6 @@ model = nn.Sequential(
     nn.Dropout(p=0.5),
     nn.Linear(64, OUTPUT_SIZE)
 )
+
+
+models = {'one_hidden_layer_nn':one_hidden_layer_nn, 'one_hidden_layer_nn_dropout':one_hidden_lay_nn_dropout, '':high_dim_model, ...}
