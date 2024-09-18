@@ -1,4 +1,5 @@
 import os
+import joblib
 import matplotlib.pyplot as plt
 
 
@@ -9,7 +10,7 @@ import torch.optim as optim
 from sklearn.metrics import f1_score, accuracy_score, roc_auc_score, precision_score
 
 ##### train #####
-def train_model(model, dataloader, test_dataloader, num_epochs=10, criterion=None, optimizer=None, lr=0.001):
+def train_model(model, dataloader, val_dataloader, model_name=None, num_epochs=10, criterion=None, optimizer=None, lr=0.001):
     if criterion is None: criterion = nn.CrossEntropyLoss()  # multiclass cross entropy loss
     if optimizer is None: optimizer = optim.Adam(model.parameters(), lr=lr)  # Adam optimizer
 
@@ -21,11 +22,11 @@ def train_model(model, dataloader, test_dataloader, num_epochs=10, criterion=Non
     epoches_precision = []
 
 
-    test_losses = []
-    test_f1s = []
-    test_aucs = []
-    test_accs = []
-    test_precisions = []
+    val_losses = []
+    val_f1s = []
+    val_aucs = []
+    val_accs = []
+    val_precisions = []
 
 
     ##### Training loop #####
@@ -84,15 +85,20 @@ def train_model(model, dataloader, test_dataloader, num_epochs=10, criterion=Non
 
 
         # get test performance
-        test_loss, test_f1, test_accuracy, test_precision, test_auroc = evaluate(model, test_dataloader, criterion)
-        test_losses.append(test_loss)
-        test_f1s.append(test_f1)
-        test_aucs.append(test_auroc)
-        test_accs.append(test_accuracy)
-        test_precisions.append(test_precision)
+        val_loss, val_f1, val_accuracy, val_precision, val_auroc = evaluate(model, val_dataloader, criterion)
+        val_losses.append(val_loss)
+        val_f1s.append(val_f1)
+        val_aucs.append(val_auroc)
+        val_accs.append(val_accuracy)
+        val_precisions.append(val_precision)
 
-    plot_metrics(epoches_loss, test_losses, epoches_f1, test_f1s, epoches_acc, test_accs, epoches_precision, test_precisions, epoches_auc, test_aucs)
-    return model, test_loss, test_f1, test_accuracy, test_precision, test_auroc # return the last results on the test dataset
+    plot_metrics(epoches_loss, val_losses, epoches_f1, val_f1s, epoches_acc, val_accs, epoches_precision, val_precisions, epoches_auc, val_aucs, model_name = model_name)
+    
+    if not model_name is None:
+        model_dict = {'model':model, 'loss': val_loss, 'f1': val_f1, 'accuracy': val_accuracy, 'precision': val_precision, 'auroc':val_auroc}
+        joblib.dump(model_dict, os.path.join('models', 'saved_models', f'{model_name}_model_dict.pkl')) # save model
+
+    return model, val_loss, val_f1, val_accuracy, val_precision, val_auroc # return the last results on the test dataset
 
 
 
@@ -134,10 +140,10 @@ def evaluate(model, dataloader, criterion):
 
 
 ##### plots #####
-def plot_metrics(epoches_loss, test_losses, epoches_f1, test_f1s, epoches_acc, test_accs, epoches_precision, test_precisions, epoches_auc, test_aucs):
+def plot_metrics(epoches_loss, test_losses, epoches_f1, test_f1s, epoches_acc, test_accs, epoches_precision, test_precisions, epoches_auc, test_aucs, model_name = None):
     epochs = range(1, len(epoches_loss) + 1)
     
-    plt.figure(figsize=(12, 10))
+    fig = plt.figure(figsize=(12, 10))
     
     # Loss
     plt.subplot(2, 2, 1)
@@ -185,3 +191,6 @@ def plot_metrics(epoches_loss, test_losses, epoches_f1, test_f1s, epoches_acc, t
 
     plt.tight_layout()
     plt.show()
+
+    if not model_name is None: 
+        fig.savefig(os.path.join('models', 'performance', f'{model_name}_convergence_plot.jpg'), dpi=300)
