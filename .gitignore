@@ -2,7 +2,7 @@ data/
 ReadMe.pdf
 *.docx
 .DS_Store
-
+*.tmp
 
 
 # Byte-compiled / optimized / DLL files
