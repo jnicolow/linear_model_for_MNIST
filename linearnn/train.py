@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from sklearn.metrics import f1_score, accuracy_score, roc_auc_score, precision_score
+from sklearn.metrics import f1_score, accuracy_score, roc_auc_score, precision_score, recall_score
 
 ##### train #####
 def train_model(model, dataloader, val_dataloader, model_name=None, num_epochs=10, criterion=None, optimizer=None, lr=0.001):
@@ -26,6 +26,7 @@ def train_model(model, dataloader, val_dataloader, model_name=None, num_epochs=1
     val_f1s = []
     val_aucs = []
     val_accs = []
+    val_recalls = []
     val_precisions = []
 
 
@@ -85,29 +86,30 @@ def train_model(model, dataloader, val_dataloader, model_name=None, num_epochs=1
 
 
         # get test performance
-        val_loss, val_f1, val_accuracy, val_precision, val_auroc = evaluate(model, val_dataloader, criterion)
+        val_loss, val_f1, val_accuracy, val_precision, val_recall, val_auroc = evaluate(model, val_dataloader, criterion)
         val_losses.append(val_loss)
         val_f1s.append(val_f1)
         val_aucs.append(val_auroc)
         val_accs.append(val_accuracy)
+        val_recalls.append(val_recall)
         val_precisions.append(val_precision)
 
     plot_metrics(epoches_loss, val_losses, epoches_f1, val_f1s, epoches_acc, val_accs, epoches_precision, val_precisions, epoches_auc, val_aucs, model_name = model_name)
     
     if not model_name is None:
-        model_dict = {'model':model, 'loss': val_loss, 'f1': val_f1, 'accuracy': val_accuracy, 'precision': val_precision, 'auroc':val_auroc}
+        model_dict = {'model':model, 'loss': val_loss, 'f1': val_f1, 'accuracy': val_accuracy, 'precision': val_precision, 'recall': val_recall, 'auroc':val_auroc}
         joblib.dump(model_dict, os.path.join('models', 'saved_models', f'{model_name}_model_dict.pkl')) # save model
 
-    return model, val_loss, val_f1, val_accuracy, val_precision, val_auroc # return the last results on the test dataset
+    return model, val_loss, val_f1, val_accuracy, val_precision, val_recall, val_auroc # return the last results on the test dataset
 
 
 
 ##### evaluate #####
 def evaluate(model, dataloader, criterion):
-    model.eval()  # model in evaluation mode
+    model.eval()
     all_preds = []
     all_labels = []
-    all_probs = []  # To store predicted probabilities
+    all_probs = []  
     running_loss = 0.0
     model.eval()
     with torch.no_grad():  # no gradient tracking for inference
@@ -129,6 +131,7 @@ def evaluate(model, dataloader, criterion):
     f1 = f1_score(all_labels, all_preds, average='weighted')
     accuracy = accuracy_score(all_labels, all_preds)
     precision = precision_score(all_labels, all_preds, average='weighted')
+    recall = recall_score(all_labels, all_preds, average='weighted')
 
     if len(all_probs[0]) == 2:  # if binary
         auroc = roc_auc_score(all_labels, [prob[1] for prob in all_probs])  # only the positive class probabilities
@@ -136,7 +139,7 @@ def evaluate(model, dataloader, criterion):
         auroc = roc_auc_score(all_labels, all_probs, multi_class='ovr')
 
     # print(f'Loss: {average_loss:0.4f}, f1: {f1:0.3f}, accuracy: {accuracy:0.4f}, percision: {precision:0.4f}, auroc: {auroc:0.4f}')
-    return average_loss, f1, accuracy, precision, auroc
+    return average_loss, f1, accuracy, precision, recall, auroc
 
 
 ##### plots #####
@@ -148,7 +151,7 @@ def plot_metrics(epoches_loss, test_losses, epoches_f1, test_f1s, epoches_acc, t
     # Loss
     plt.subplot(2, 2, 1)
     plt.plot(epochs, epoches_loss, label='Train Loss', color='blue')
-    plt.plot(epochs, test_losses, label='Test Loss', color='blue', linestyle='--')
+    plt.plot(epochs, test_losses, label='Validation Loss', color='blue', linestyle='--')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Loss by Epoch')
@@ -157,33 +160,33 @@ def plot_metrics(epoches_loss, test_losses, epoches_f1, test_f1s, epoches_acc, t
     # F1 Score
     plt.subplot(2, 2, 2)
     plt.plot(epochs, epoches_f1, label='Train F1 Score', color='green')
-    plt.plot(epochs, test_f1s, label='Test F1 Score', color='green', linestyle='--')
+    plt.plot(epochs, test_f1s, label='Validation F1 Score', color='green', linestyle='--')
     plt.xlabel('Epoch')
     plt.ylabel('F1 Score')
     plt.title('F1 Score by Epoch')
     plt.legend()
     
     # Accuracy
-    plt.subplot(2, 2, 3)
-    plt.plot(epochs, epoches_acc, label='Accuracy', color='orange')
-    plt.plot(epochs, test_accs, label='Test Accuracy', color='orange', linestyle='--')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.title('Accuracy by Epoch')
-    plt.legend()
-
     # plt.subplot(2, 2, 3)
-    # plt.plot(epochs, epoches_auc, label='Train AUROC', color='orange')
-    # plt.plot(epochs, test_aucs, label='Test AUROC', color='orange', linestyle='--')
+    # plt.plot(epochs, epoches_acc, label='Train Accuracy', color='orange')
+    # plt.plot(epochs, test_accs, label='Validation Accuracy', color='orange', linestyle='--')
     # plt.xlabel('Epoch')
-    # plt.ylabel('AUROC')
-    # plt.title('AUROC by Epoch')
+    # plt.ylabel('Accuracy')
+    # plt.title('Accuracy by Epoch')
     # plt.legend()
+
+    plt.subplot(2, 2, 3)
+    plt.plot(epochs, epoches_auc, label='Train AUROC', color='orange')
+    plt.plot(epochs, test_aucs, label='Test AUROC', color='orange', linestyle='--')
+    plt.xlabel('Epoch')
+    plt.ylabel('AUROC')
+    plt.title('AUROC by Epoch')
+    plt.legend()
     
     # Precision
     plt.subplot(2, 2, 4)
     plt.plot(epochs, epoches_precision, label='Train Precision', color='red')
-    plt.plot(epochs, test_precisions, label='Test Precision', color='red', linestyle='--')
+    plt.plot(epochs, test_precisions, label='Validation Precision', color='red', linestyle='--')
     plt.xlabel('Epoch')
     plt.ylabel('Precision')
     plt.title('Precision by Epoch')

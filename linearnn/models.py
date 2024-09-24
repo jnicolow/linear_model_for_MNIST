@@ -105,3 +105,5 @@ models = {
     'model5': model5,
     'model6': model6
 }
+
+# models = {'model3':high_dim_model}

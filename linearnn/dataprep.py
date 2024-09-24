@@ -11,12 +11,13 @@ class TabularDataset(Dataset):
         self.y = torch.tensor(self.y, dtype=torch.long)  # Use long for classification
 
         # normulization (min max scaling)
-        X_min = self.X.min()
-        X_max = self.X.max()
-        self.X = (self.X - X_min) / (X_max - X_min)
+        # X_min = self.X.min()
+        # X_max = self.X.max()
+        # self.X = (self.X - X_min) / (X_max - X_min)
+        self.X /= 255 # values are 0-255 so devide by 255 for X
 
     def __len__(self):
         return len(self.X)
 
     def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
+        return self.X[idx], self.y[idx] 
